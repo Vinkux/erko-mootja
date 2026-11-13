@@ -28,7 +28,7 @@
 html, body { margin: 0; height: 100%; background: var(--taust); color: var(--tekst);
   font: 17px/1.35 -apple-system, "Segoe UI", Roboto, sans-serif; overflow: hidden;
   -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
-button, select, input { font: inherit; color: var(--tekst); }
+button, select, input { font: inherit; color: var(--tekst); touch-action: manipulation; }
 button { background: var(--pind2); border: 1px solid var(--joon); border-radius: 10px; min-height: 48px;
   min-width: 48px; padding: 0 14px; }
 button:active { background: #222; }
@@ -180,6 +180,19 @@ var Mootja = (function () {
 
   function onArv(x) { return typeof x === "number" && isFinite(x); }
 
+  /* Punkti võti: "u12" (üldvalgustus) või "h12" (hädavalgustus); näidud ja vahelejätud on selle võtmega. */
+  function votiPunkt(valgustus, nr) { return (valgustus === "hada" ? "h" : "u") + nr; }
+  function votmest(k) {
+    var m = /^([uh])(\d+(?:\.\d+)?)$/.exec(String(k));
+    return m ? { valgustus: m[1] === "h" ? "hada" : "uld", nr: Number(m[2]) } : null;
+  }
+  /* Järjekord: üldvalgustus enne, siis hädavalgustus; mõlemas numbri järgi. */
+  function jarjestus(a, b) {
+    return (a.valgustus === "hada") - (b.valgustus === "hada") || a.nr - b.nr;
+  }
+  /* Punkti nimi ekraanil: hädapunktil H ees (H5), et see ei läheks segamini üldpunktiga 5. */
+  function silt(p) { return (p.valgustus === "hada" ? "H" : "") + p.nr; }
+
   function loeFail(tekst) {
     var d;
     try { d = JSON.parse(String(tekst).replace(/^\uFEFF/, "")); }
@@ -207,20 +220,22 @@ var Mootja = (function () {
     d.punktid.forEach(function (p) {
       if (!p || !onArv(Number(p.nr))) return;
       var nr = Number(p.nr);
-      if (nahtud[nr]) return;
-      nahtud[nr] = true;
+      var valgustus = p.valgustus === "hada" ? "hada" : "uld";
+      var k = votiPunkt(valgustus, nr);   // üld- ja hädapunktid on eraldi nummerdatud (mõlemad 1..N)
+      if (nahtud[k]) return;
+      nahtud[k] = true;
       var ala = String(p.ala);
       if (!idd[ala]) {
         idd[ala] = { id: ala, nr: "", nimi: "(ala " + ala + ")", korrus: "", valine: false, piir: [] };
         alad.push(idd[ala]);
       }
       var asukoht = onArv(p.lat) && onArv(p.lon);
-      punktid.push({ nr: nr, ala: ala, valgustus: p.valgustus === "hada" ? "hada" : "uld",
+      punktid.push({ k: k, nr: nr, ala: ala, valgustus: valgustus,
         liik: p.liik === "Ev" ? "Ev" : "Eh", suund: onArv(p.suund) ? p.suund : null, silt: p.silt || "",
         lat: asukoht ? p.lat : null, lon: asukoht ? p.lon : null,
         e: onArv(p.e) ? p.e : null, n: onArv(p.n) ? p.n : null, lx: onArv(p.lx) ? p.lx : null });
     });
-    punktid.sort(function (a, b) { return a.nr - b.nr; });
+    punktid.sort(jarjestus);
     if (!punktid.length) return { viga: "Failis pole ühtegi mõõtepunkti." };
     return { andmed: { vorming: VORMING, projekt: { nr: String(d.projekt.nr), nimi: d.projekt.nimi || "" },
       koostatud: String(d.koostatud || ""), alad: alad, punktid: punktid } };
@@ -270,27 +285,26 @@ var Mootja = (function () {
     return v;
   }
 
-  /* Uus fail: sama fail -> olek alles; sama projekti teine fail -> näidud punktinumbri järgi üle. */
+  /* Fail avatakse: sama fail -> olek alles; sama projekti teistest failidest (ka vanema faili uuesti avamisel)
+     tulevad näidud punktinumbri järgi juurde, sama punkti puhul uuem näit. */
   function avaAndmed(hoidla, andmed) {
     var k = voti(andmed);
     var olemas = loe(hoidla, k);
-    if (olemas) {
-      olemas.andmed = andmed;
-      return { olek: olemas, ule: 0, sama: true };
-    }
-    var olek = uusOlek(andmed);
+    var olek = olemas || uusOlek(andmed);
+    olek.andmed = andmed;
     var eesliide = PREFIKS + andmed.projekt.nr + "|";
-    var vanad = votmed(hoidla).filter(function (x) { return x.indexOf(eesliide) === 0; });
+    var vanad = votmed(hoidla).filter(function (x) { return x.indexOf(eesliide) === 0 && x !== k; });
     var ule = 0;
     vanad.sort();
     vanad.forEach(function (x) {
       var vana = loe(hoidla, x);
       if (!vana) return;
-      Object.keys(vana.naidud).forEach(function (nr) {
-        var a = olek.naidud[nr], b = vana.naidud[nr];
-        if (!a || String(b.aeg) > String(a.aeg)) { if (!a) ule++; olek.naidud[nr] = b; }
+      Object.keys(vana.naidud).forEach(function (pk) {
+        var a = olek.naidud[pk], b = vana.naidud[pk];
+        if (!a || String(b.aeg) > String(a.aeg)) { ule++; olek.naidud[pk] = b; }
       });
     });
+    if (olemas) return { olek: olek, ule: ule, sama: true };
     if (olek.ala && vanad.length) {
       var viimane = loe(hoidla, vanad[vanad.length - 1]);
       if (viimane && andmed.alad.some(function (a) { return a.id === viimane.ala; })) olek.ala = viimane.ala;
@@ -298,14 +312,15 @@ var Mootja = (function () {
     return { olek: olek, ule: ule, sama: false };
   }
 
-  function punkt(olek, nr) {
-    nr = Number(nr);
-    for (var i = 0; i < olek.andmed.punktid.length; i++) if (olek.andmed.punktid[i].nr === nr) return olek.andmed.punktid[i];
+  /* Punkt võtme järgi ("u12"/"h12"); arv 12 = üldpunkt 12. */
+  function punkt(olek, k) {
+    k = typeof k === "number" ? votiPunkt("uld", k) : String(k);
+    for (var i = 0; i < olek.andmed.punktid.length; i++) if (olek.andmed.punktid[i].k === k) return olek.andmed.punktid[i];
     return null;
   }
 
   function nait(olek, p) {
-    var n = olek.naidud[String(p.nr)];
+    var n = olek.naidud[p.k];
     if (n) return { lx: n.lx, aeg: n.aeg, allikas: "telefon" };
     if (p.lx !== null && p.lx !== undefined) return { lx: p.lx, aeg: null, allikas: "fail" };
     return null;
@@ -341,14 +356,14 @@ var Mootja = (function () {
   }
 
   /* Järgmine punkt: valitud ala väikseima numbriga mõõtmata punkt (vahele jäetud alles siis, kui muid pole);
-     lahim=true ja asukoht teada -> lähim asukohaga mõõtmata punkt. valja = punkt, mida mitte valida. */
+     lahim=true ja asukoht teada -> lähim asukohaga mõõtmata punkt. valja = punkti võti, mida mitte valida. */
   function jargmine(olek, ala, asukoht, lahim, valja) {
-    var vabad = alaPunktid(olek, ala).filter(function (p) { return !nait(olek, p) && p.nr !== valja; });
+    var vabad = alaPunktid(olek, ala).filter(function (p) { return !nait(olek, p) && p.k !== valja; });
     if (!vabad.length) return null;
     var vahele = olek.vahele || {};
-    var pohi = vabad.filter(function (p) { return !vahele[String(p.nr)]; });
+    var pohi = vabad.filter(function (p) { return !vahele[p.k]; });
     if (!pohi.length) {
-      pohi = vabad.slice().sort(function (a, b) { return vahele[String(a.nr)] - vahele[String(b.nr)] || a.nr - b.nr; });
+      pohi = vabad.slice().sort(function (a, b) { return vahele[a.k] - vahele[b.k] || jarjestus(a, b); });
       return pohi[0];
     }
     if (lahim && asukoht) {
@@ -384,41 +399,47 @@ var Mootja = (function () {
 
   function kell(iso) { var m = /T(\d\d:\d\d)/.exec(iso || ""); return m ? m[1] : ""; }
 
-  function salvestaNait(olek, nr, lx, aeg, asukoht) {
+  function salvestaNait(olek, k, lx, aeg, asukoht) {
     var kirje = { lx: lx, aeg: aeg };
     if (asukoht) {
       kirje.lat = Math.round(asukoht.lat * 1e7) / 1e7;
       kirje.lon = Math.round(asukoht.lon * 1e7) / 1e7;
       kirje.tapsus_m = Math.round(asukoht.tapsus * 10) / 10;
     }
-    olek.naidud[String(nr)] = kirje;
-    if (olek.vahele) delete olek.vahele[String(nr)];
+    olek.naidud[String(k)] = kirje;
+    if (olek.vahele) delete olek.vahele[String(k)];
     return kirje;
   }
 
-  function jataVahele(olek, nr) {
+  function jataVahele(olek, k) {
     olek.vahele = olek.vahele || {};
     var max = 0;
-    Object.keys(olek.vahele).forEach(function (k) { max = Math.max(max, olek.vahele[k]); });
-    olek.vahele[String(nr)] = max + 1;
+    Object.keys(olek.vahele).forEach(function (x) { max = Math.max(max, olek.vahele[x]); });
+    olek.vahele[String(k)] = max + 1;
   }
 
+  /* erko-mootmine-tulemus-1; lisaks „valgustus“ (uld|hada), sest üld- ja hädapunktidel võib olla sama nr (574). */
   function tulemused(olek) {
-    var tul = Object.keys(olek.naidud).map(function (nr) {
-      var n = olek.naidud[nr];
-      var r = { nr: Number(nr), lx: n.lx, aeg: n.aeg };
+    var tul = [];
+    Object.keys(olek.naidud).forEach(function (k) {
+      var v = votmest(k);
+      if (!v) return;
+      var n = olek.naidud[k];
+      var r = { nr: v.nr, valgustus: v.valgustus, lx: n.lx, aeg: n.aeg };
       if (onArv(n.lat) && onArv(n.lon)) { r.lat = n.lat; r.lon = n.lon; }
       if (onArv(n.tapsus_m)) r.tapsus_m = n.tapsus_m;
-      return r;
+      tul.push(r);
     });
-    tul.sort(function (a, b) { return a.nr - b.nr; });
+    tul.sort(jarjestus);
     return { vorming: TULEMUS, projekt: olek.andmed.projekt.nr, allikas_koostatud: olek.andmed.koostatud,
       tulemused: tul };
   }
 
   function csv(tul) {
-    var read = ["nr;lx;aeg"];
-    tul.tulemused.forEach(function (t) { read.push(t.nr + ";" + arvTekst(t.lx) + ";" + t.aeg); });
+    var read = ["nr;lx;aeg;valgustus"];
+    tul.tulemused.forEach(function (t) {
+      read.push(t.nr + ";" + arvTekst(t.lx) + ";" + t.aeg + ";" + (t.valgustus || "uld"));
+    });
     return read.join("\r\n") + "\r\n";
   }
 
@@ -433,7 +454,7 @@ var Mootja = (function () {
     alaPunktid: alaPunktid, loendur: loendur, kaugusSuund: kaugusSuund, suunaNimi: suunaNimi,
     kauguseTekst: kauguseTekst, jargmine: jargmine, loeArv: loeArv, arvTekst: arvTekst, isoKohalik: isoKohalik,
     kell: kell, salvestaNait: salvestaNait, jataVahele: jataVahele, tulemused: tulemused, csv: csv,
-    failiNimi: failiNimi };
+    failiNimi: failiNimi, votiPunkt: votiPunkt, votmest: votmest, silt: silt };
 })();
 if (typeof module !== "undefined") module.exports = Mootja;
 </script>
@@ -450,8 +471,8 @@ if (typeof module !== "undefined") module.exports = Mootja;
   var olek = null;          // Mootja olek
   var asukoht = null;       // {lat, lon, tapsus}
   var gpsTeade = "GPS: ootan asukohta…";
-  var valitud = null;       // käsitsi valitud punkti nr (kaardil)
-  var sisestusNr = null;    // sisestusvaate punkt
+  var valitud = null;       // käsitsi valitud punkti võti u12/h12 (kaardil)
+  var sisestusNr = null;    // sisestusvaate punkti võti
   var sisestusTekst = "";
   var vaade = "fail";
   var eelmineVaade = "kaardiVaade";
@@ -542,7 +563,7 @@ if (typeof module !== "undefined") module.exports = Mootja;
     if (!olek) { rida.textContent = "Ava mõõtefail (Fail)"; nupp.disabled = true; nupp.textContent = "Sisesta näit"; }
     else if (!p) { rida.textContent = "Kõik selle ala punktid on mõõdetud"; nupp.disabled = true; nupp.textContent = "Sisesta näit"; }
     else {
-      var t = "Punkt " + p.nr;
+      var t = "Punkt " + M.silt(p);
       var n = M.nait(olek, p);
       if (n) t += " · " + M.arvTekst(n.lx) + " lx";
       if (p.lat === null) t += " · sees (asukohta pole)";
@@ -552,11 +573,11 @@ if (typeof module !== "undefined") module.exports = Mootja;
       }
       rida.textContent = t;
       nupp.disabled = false;
-      nupp.textContent = (n ? "Muuda näitu (" : "Sisesta näit (") + p.nr + ")";
+      nupp.textContent = (n ? "Muuda näitu (" : "Sisesta näit (") + M.silt(p) + ")";
     }
     $("gpsRida").textContent = gpsTeade;
   }
-  $("sisestaNupp").onclick = function () { var p = siht(); if (p) avaSisestus(p.nr); };
+  $("sisestaNupp").onclick = function () { var p = siht(); if (p) avaSisestus(p.k); };
   $("lahimLyliti").onchange = function () {
     if (!olek) return;
     olek.lahim = this.checked; valitud = null; salvestaOlek(); uuenda();
@@ -692,9 +713,9 @@ if (typeof module !== "undefined") module.exports = Mootja;
       ctx.fillStyle = n ? "#2f6f3a" : "#505050";
       ctx.fill();
       if (p.valgustus === "hada") { ctx.strokeStyle = "#7a3a3a"; ctx.lineWidth = 2; ctx.stroke(); }
-      if (oma && (numbrid || (s && s.nr === p.nr))) {
+      if (oma && (numbrid || (s && s.k === p.k))) {
         ctx.fillStyle = "#8a8a8a"; ctx.font = "12px sans-serif"; ctx.textAlign = "left"; ctx.textBaseline = "bottom";
-        ctx.fillText(String(p.nr), e.x + r + 2, e.y - r + 2);
+        ctx.fillText(M.silt(p), e.x + r + 2, e.y - r + 2);
       }
       ctx.globalAlpha = 1;
     });
@@ -709,7 +730,7 @@ if (typeof module !== "undefined") module.exports = Mootja;
       ctx.beginPath(); ctx.arc(e2.x, e2.y, r + 7, 0, Math.PI * 2);
       ctx.strokeStyle = "#a06a20"; ctx.lineWidth = 3; ctx.stroke();
       ctx.fillStyle = "#a07a40"; ctx.font = "bold 15px sans-serif"; ctx.textAlign = "left"; ctx.textBaseline = "bottom";
-      ctx.fillText(String(s.nr), e2.x + r + 8, e2.y - r - 4);
+      ctx.fillText(M.silt(s), e2.x + r + 8, e2.y - r - 4);
     }
     // minu asukoht
     if (asukoht) {
@@ -797,7 +818,7 @@ if (typeof module !== "undefined") module.exports = Mootja;
       if (k < pk) { pk = k; parim = p; }
     });
     if (parim) {
-      valitud = parim.nr;
+      valitud = parim.k;
       if (olek.ala !== "*" && parim.ala !== olek.ala) { olek.ala = parim.ala; $("alaValik").value = olek.ala; salvestaOlek(); }
     } else valitud = null;
     uuenda();
@@ -817,13 +838,13 @@ if (typeof module !== "undefined") module.exports = Mootja;
     else if (sisestusTekst.length < 8) sisestusTekst = sisestusTekst === "0" ? k : sisestusTekst + k;
     naitaSisestus();
   }
-  function jargmineParast(nr) { return M.jargmine(olek, olek.ala, asukoht, olek.lahim, nr); }
-  function avaSisestus(nr) {
-    var p = M.punkt(olek, nr);
+  function jargmineParast(k) { return M.jargmine(olek, olek.ala, asukoht, olek.lahim, k); }
+  function avaSisestus(k) {
+    var p = M.punkt(olek, k);
     if (!p) return;
-    sisestusNr = p.nr; sisestusTekst = "";
+    sisestusNr = p.k; sisestusTekst = "";
     var ala = olek.andmed.alad.filter(function (a) { return a.id === p.ala; })[0];
-    $("sPealkiri").textContent = "Punkt " + p.nr + (p.valgustus === "hada" ? " · hädavalgustus" : "");
+    $("sPealkiri").textContent = "Punkt " + M.silt(p) + (p.valgustus === "hada" ? " · hädavalgustus" : "");
     var info = [];
     if (ala) info.push(alaNimi(ala));
     info.push(p.liik === "Ev" ? "Ev (vertikaalne)" + (p.silt ? " suund " + p.silt : "") : "Eh (horisontaalne)");
@@ -839,7 +860,7 @@ if (typeof module !== "undefined") module.exports = Mootja;
     var j = jargmineParast(sisestusNr);
     var nupp = $("salvestaNupp");
     nupp.disabled = v === null;
-    nupp.textContent = j ? "Salvesta ja järgmine (" + j.nr + ")" : "Salvesta";
+    nupp.textContent = j ? "Salvesta ja järgmine (" + M.silt(j) + ")" : "Salvesta";
   }
   function salvestaSisestus() {
     var v = M.loeArv(sisestusTekst);
@@ -847,17 +868,17 @@ if (typeof module !== "undefined") module.exports = Mootja;
     var p = M.punkt(olek, sisestusNr);
     var n = M.nait(olek, p);
     var tee = function () {
-      M.salvestaNait(olek, p.nr, v, M.isoKohalik(new Date()), asukoht);
+      M.salvestaNait(olek, p.k, v, M.isoKohalik(new Date()), asukoht);
       var ok = salvestaOlek();
       valitud = null;
-      teade("Punkt " + p.nr + ": " + M.arvTekst(v) + " lx salvestatud" + (ok ? "" : " (AINULT MÄLUS!)"), 2000);
-      jargmineVoiKaart(p.nr);
+      teade("Punkt " + M.silt(p) + ": " + M.arvTekst(v) + " lx salvestatud" + (ok ? "" : " (AINULT MÄLUS!)"), 2000);
+      jargmineVoiKaart(p.k);
     };
-    if (n && n.lx !== v) kysi("Punktil " + p.nr + " on juba näit " + M.arvTekst(n.lx) + " lx. Kirjutan üle: " + M.arvTekst(v) + " lx?", "Kirjuta üle", tee);
+    if (n && n.lx !== v) kysi("Punktil " + M.silt(p) + " on juba näit " + M.arvTekst(n.lx) + " lx. Kirjutan üle: " + M.arvTekst(v) + " lx?", "Kirjuta üle", tee);
     else tee();
   }
-  function jargmineVoiKaart(nr) {
-    var j = jargmineParast(nr);
+  function jargmineVoiKaart(k) {
+    var j = jargmineParast(k);
     if (j && eelmineVaade === "kaardiVaade") { uuenda(); naita("kaardiVaade"); }
     else { uuenda(); naita(eelmineVaade); }
   }
@@ -878,9 +899,9 @@ if (typeof module !== "undefined") module.exports = Mootja;
     M.alaPunktid(olek, olek.ala).forEach(function (p) {
       var n = M.nait(olek, p);
       var rida = document.createElement("div");
-      var vahel = !n && olek.vahele && olek.vahele[String(p.nr)];
+      var vahel = !n && olek.vahele && olek.vahele[p.k];
       rida.className = "nrida" + (n ? " moodetud" : "") + (vahel ? " vahele" : "");
-      var a = document.createElement("span"); a.className = "nr"; a.textContent = p.nr; rida.appendChild(a);
+      var a = document.createElement("span"); a.className = "nr"; a.textContent = M.silt(p); rida.appendChild(a);
       var b = document.createElement("span"); b.className = "v";
       b.textContent = n ? M.arvTekst(n.lx) + " lx" : (vahel ? "vahele jäetud" : "mõõtmata");
       if (p.liik === "Ev") b.textContent += "  · Ev" + (p.silt ? " " + p.silt : "");
@@ -890,7 +911,7 @@ if (typeof module !== "undefined") module.exports = Mootja;
       var c = document.createElement("span"); c.className = "aeg";
       c.textContent = n ? (n.aeg ? M.kell(n.aeg) : "Projekteerija") : "";
       rida.appendChild(c);
-      rida.onclick = function () { avaSisestus(p.nr); };
+      rida.onclick = function () { avaSisestus(p.k); };
       frag.appendChild(rida);
     });
     el.appendChild(frag);
@@ -919,7 +940,7 @@ if (typeof module !== "undefined") module.exports = Mootja;
     taidaAlad(); sobita(); uuenda();
     var l = M.loendur(olek, "*");
     teade((nimi ? nimi + ": " : "") + olek.andmed.punktid.length + " punkti" +
-      (tulemus.sama ? ", näidud alles (" + l.moodetud + ")" : tulemus.ule ? ", " + tulemus.ule + " näitu eelmisest failist" : ""), 4000);
+      (tulemus.sama ? ", näidud alles (" + l.moodetud + ")" : "") + (tulemus.ule ? ", " + tulemus.ule + " näitu teisest failist" : ""), 4000);
     naita("kaardiVaade");
   }
   function taidaFail() {

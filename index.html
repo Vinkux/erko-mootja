@@ -149,10 +149,15 @@ input[type=file] { display: none; }
       <input type="file" id="failiSisend" accept=".json,application/json">
       <div id="failInfo">Faili pole avatud.</div>
       <button id="ekspordiNupp2">Ekspordi tulemused</button>
+      <button id="proovNupp">Proovi siin (13 punkti minu ümber)</button>
       <div class="markus">
         Mõõtefaili teeb Projekteerija: Valgus → Mõõtmine telefonis: ekspordi mõõtefail. Pane see OneDrive'i ja
         ava siit (Failid → OneDrive). Näidud hoitakse selles telefonis ka siis, kui leht suletakse. Leht ei saada
         midagi internetti; tulemused lähevad välja ainult nupuga „Ekspordi tulemused“.
+      </div>
+      <div class="markus">
+        „Proovi siin“: harjutamiseks ilma mõõtefailita. Teeb sinu asukohast 3–18 m põhja poole 12 väljamõeldud
+        punkti (5 m vahega) ja ühe Ev-punkti. Päris faili näidud jäävad telefoni alles: ava pärast päris fail uuesti.
       </div>
       <div class="markus" id="ekraaniInfo"></div>
     </section>
@@ -443,6 +448,32 @@ var Mootja = (function () {
     return read.join("\r\n") + "\r\n";
   }
 
+  /* Proovifail asukoha ümber (575b): väljamõeldud välisala, 4 rida × 3 veergu Eh-punkte 5 m vahega, ruudustiku
+     keskkoht 10 m põhja pool, ja üks Ev-punkt (suund põhja). Projekt PROOV<kuupäev+kell>, et päris projekti
+     ja varasemate proovide näidud ei seguneks. Tagastab mõõtefaili teksti (vorming erko-mootmine-1). */
+  function proovifail(lat, lon, d) {
+    var kn = 111320, ke = 111320 * Math.cos(lat * Math.PI / 180);
+    function koht(e, n) { return [Math.round((lat + n / kn) * 1e7) / 1e7, Math.round((lon + e / ke) * 1e7) / 1e7]; }
+    var punktid = [], nr = 0;
+    for (var r = 0; r < 4; r++) {
+      for (var v = 0; v < 3; v++) {
+        var k = koht((v - 1) * 5, 2.5 + r * 5);
+        punktid.push({ nr: ++nr, ala: "proov", valgustus: "uld", liik: "Eh", suund: null, silt: "",
+          lat: k[0], lon: k[1], e: null, n: null, lx: null });
+      }
+    }
+    var ev = koht(5, 0);
+    punktid.push({ nr: ++nr, ala: "proov", valgustus: "uld", liik: "Ev", suund: 0, silt: "",
+      lat: ev[0], lon: ev[1], e: null, n: null, lx: null });
+    var piir = [koht(-8, -2), koht(8, -2), koht(8, 20), koht(-8, 20)];
+    var aeg = isoKohalik(d);
+    var tunnus = aeg.slice(2, 19).replace(/[^0-9]/g, "");   // aammppttmmss: iga proov on eraldi projekt
+    return JSON.stringify({ vorming: VORMING, koostatud: aeg,
+      projekt: { nr: "PROOV" + tunnus, nimi: "Proov minu asukohas (väljamõeldud punktid)" },
+      alad: [{ id: "proov", nr: "P1", nimi: "Proovi plats", korrus: "", valine: true, piir: piir }],
+      punktid: punktid });
+  }
+
   function failiNimi(olek, d, laiend) {
     var nr = String(olek.andmed.projekt.nr).replace(/[^0-9A-Za-z_\-]/g, "_");
     return nr + "_mootmine_tulemused_" + d.getFullYear() + "-" + kaks(d.getMonth() + 1) + "-" + kaks(d.getDate()) +
@@ -454,7 +485,7 @@ var Mootja = (function () {
     alaPunktid: alaPunktid, loendur: loendur, kaugusSuund: kaugusSuund, suunaNimi: suunaNimi,
     kauguseTekst: kauguseTekst, jargmine: jargmine, loeArv: loeArv, arvTekst: arvTekst, isoKohalik: isoKohalik,
     kell: kell, salvestaNait: salvestaNait, jataVahele: jataVahele, tulemused: tulemused, csv: csv,
-    failiNimi: failiNimi, votiPunkt: votiPunkt, votmest: votmest, silt: silt };
+    failiNimi: failiNimi, proovifail: proovifail, votiPunkt: votiPunkt, votmest: votmest, silt: silt };
 })();
 if (typeof module !== "undefined") module.exports = Mootja;
 </script>
@@ -943,6 +974,21 @@ if (typeof module !== "undefined") module.exports = Mootja;
       (tulemus.sama ? ", näidud alles (" + l.moodetud + ")" : "") + (tulemus.ule ? ", " + tulemus.ule + " näitu teisest failist" : ""), 4000);
     naita("kaardiVaade");
   }
+  $("proovNupp").onclick = function () {
+    if (!asukoht) { teade("Ootan GPS-i asukohta. Luba asukoht ja mine õue, siis proovi uuesti.", 5000); return; }
+    var la = asukoht.lat, lo = asukoht.lon, tapsus = asukoht.tapsus;   // vajutuse hetke asukoht
+    var tee = function () { avaTekst(M.proovifail(la, lo, new Date()), "Proov"); };
+    var failiga = function () {
+      if (olek && !/^PROOV/.test(String(olek.andmed.projekt.nr)))
+        kysi("Avan proovipunktid. Praeguse faili (" + olek.andmed.projekt.nr + ") näidud jäävad telefoni alles; " +
+          "pärast ava see fail uuesti.", "Ava proov", tee);
+      else tee();
+    };
+    if (tapsus > 15)
+      kysi("GPS täpsus on ±" + Math.round(tapsus) + " m: proovipunktid võivad olla mitu meetrit nihkes. " +
+        "Parem oota õues, kuni täpsus on alla 15 m (näha kaardi all).", "Tee ikkagi", function () { setTimeout(failiga, 0); });
+    else failiga();
+  };
   function taidaFail() {
     if (!olek) { $("failInfo").textContent = "Faili pole avatud."; return; }
     var l = M.loendur(olek, "*");

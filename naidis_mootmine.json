@@ -1,0 +1,421 @@
+{
+ "vorming": "erko-mootmine-1",
+ "projekt": {
+  "nr": "000001",
+  "nimi": "Näidisprojekt (väljamõeldud)"
+ },
+ "koostatud": "2026-11-13T14:30:00+02:00",
+ "alad": [
+  {
+   "id": "ala-a",
+   "nr": "901",
+   "nimi": "Näidisplats A",
+   "korrus": "Asendiplaan",
+   "valine": true,
+   "piir": [
+    [
+     58.6,
+     25.0
+    ],
+    [
+     58.6,
+     25.0010345
+    ],
+    [
+     58.6002695,
+     25.0010345
+    ],
+    [
+     58.6002695,
+     25.0
+    ]
+   ]
+  },
+  {
+   "id": "ala-b",
+   "nr": "902",
+   "nimi": "Näidistee B",
+   "korrus": "Asendiplaan",
+   "valine": true,
+   "piir": [
+    [
+     58.6,
+     25.0012069
+    ],
+    [
+     58.6,
+     25.0017242
+    ],
+    [
+     58.6001078,
+     25.0017242
+    ],
+    [
+     58.6001078,
+     25.0012069
+    ]
+   ]
+  },
+  {
+   "id": "ala-c",
+   "nr": "903",
+   "nimi": "Näidisruum C",
+   "korrus": "1. korrus",
+   "valine": false,
+   "piir": []
+  }
+ ],
+ "punktid": [
+  {
+   "nr": 101,
+   "ala": "ala-a",
+   "valgustus": "uld",
+   "liik": "Eh",
+   "suund": null,
+   "silt": "",
+   "lat": 58.6000449,
+   "lon": 25.0001035,
+   "e": 558140.38,
+   "n": 6496000.23,
+   "lx": 14.2
+  },
+  {
+   "nr": 102,
+   "ala": "ala-a",
+   "valgustus": "uld",
+   "liik": "Eh",
+   "suund": null,
+   "silt": "",
+   "lat": 58.6000449,
+   "lon": 25.0003104,
+   "e": 558152.41,
+   "n": 6496000.41,
+   "lx": null
+  },
+  {
+   "nr": 103,
+   "ala": "ala-a",
+   "valgustus": "uld",
+   "liik": "Eh",
+   "suund": null,
+   "silt": "",
+   "lat": 58.6000449,
+   "lon": 25.0005173,
+   "e": 558164.44,
+   "n": 6496000.59,
+   "lx": null
+  },
+  {
+   "nr": 104,
+   "ala": "ala-a",
+   "valgustus": "uld",
+   "liik": "Eh",
+   "suund": null,
+   "silt": "",
+   "lat": 58.6000449,
+   "lon": 25.0007242,
+   "e": 558176.46,
+   "n": 6496000.77,
+   "lx": null
+  },
+  {
+   "nr": 105,
+   "ala": "ala-a",
+   "valgustus": "uld",
+   "liik": "Eh",
+   "suund": null,
+   "silt": "",
+   "lat": 58.6000449,
+   "lon": 25.0009311,
+   "e": 558188.49,
+   "n": 6496000.95,
+   "lx": null
+  },
+  {
+   "nr": 106,
+   "ala": "ala-a",
+   "valgustus": "uld",
+   "liik": "Eh",
+   "suund": null,
+   "silt": "",
+   "lat": 58.6001347,
+   "lon": 25.0001035,
+   "e": 558140.23,
+   "n": 6496010.24,
+   "lx": null
+  },
+  {
+   "nr": 107,
+   "ala": "ala-a",
+   "valgustus": "uld",
+   "liik": "Eh",
+   "suund": null,
+   "silt": "",
+   "lat": 58.6001347,
+   "lon": 25.0003104,
+   "e": 558152.26,
+   "n": 6496010.42,
+   "lx": null
+  },
+  {
+   "nr": 108,
+   "ala": "ala-a",
+   "valgustus": "uld",
+   "liik": "Eh",
+   "suund": null,
+   "silt": "",
+   "lat": 58.6001347,
+   "lon": 25.0005173,
+   "e": 558164.29,
+   "n": 6496010.59,
+   "lx": null
+  },
+  {
+   "nr": 109,
+   "ala": "ala-a",
+   "valgustus": "uld",
+   "liik": "Eh",
+   "suund": null,
+   "silt": "",
+   "lat": 58.6001347,
+   "lon": 25.0007242,
+   "e": 558176.31,
+   "n": 6496010.77,
+   "lx": null
+  },
+  {
+   "nr": 110,
+   "ala": "ala-a",
+   "valgustus": "uld",
+   "liik": "Eh",
+   "suund": null,
+   "silt": "",
+   "lat": 58.6001347,
+   "lon": 25.0009311,
+   "e": 558188.34,
+   "n": 6496010.95,
+   "lx": null
+  },
+  {
+   "nr": 111,
+   "ala": "ala-a",
+   "valgustus": "uld",
+   "liik": "Eh",
+   "suund": null,
+   "silt": "",
+   "lat": 58.6002246,
+   "lon": 25.0001035,
+   "e": 558140.08,
+   "n": 6496020.25,
+   "lx": null
+  },
+  {
+   "nr": 112,
+   "ala": "ala-a",
+   "valgustus": "uld",
+   "liik": "Eh",
+   "suund": null,
+   "silt": "",
+   "lat": 58.6002246,
+   "lon": 25.0003104,
+   "e": 558152.11,
+   "n": 6496020.43,
+   "lx": null
+  },
+  {
+   "nr": 113,
+   "ala": "ala-a",
+   "valgustus": "uld",
+   "liik": "Eh",
+   "suund": null,
+   "silt": "",
+   "lat": 58.6002246,
+   "lon": 25.0005173,
+   "e": 558164.14,
+   "n": 6496020.61,
+   "lx": null
+  },
+  {
+   "nr": 114,
+   "ala": "ala-a",
+   "valgustus": "uld",
+   "liik": "Eh",
+   "suund": null,
+   "silt": "",
+   "lat": 58.6002246,
+   "lon": 25.0007242,
+   "e": 558176.17,
+   "n": 6496020.79,
+   "lx": null
+  },
+  {
+   "nr": 115,
+   "ala": "ala-a",
+   "valgustus": "uld",
+   "liik": "Eh",
+   "suund": null,
+   "silt": "",
+   "lat": 58.6002246,
+   "lon": 25.0009311,
+   "e": 558188.19,
+   "n": 6496020.97,
+   "lx": null
+  },
+  {
+   "nr": 116,
+   "ala": "ala-a",
+   "valgustus": "hada",
+   "liik": "Eh",
+   "suund": null,
+   "silt": "",
+   "lat": 58.6001347,
+   "lon": 25.0005173,
+   "e": 558164.29,
+   "n": 6496010.59,
+   "lx": null
+  },
+  {
+   "nr": 117,
+   "ala": "ala-a",
+   "valgustus": "uld",
+   "liik": "Ev",
+   "suund": 90.0,
+   "silt": "V",
+   "lat": 58.6001347,
+   "lon": 25.0000345,
+   "e": 558136.22,
+   "n": 6496010.18,
+   "lx": null
+  },
+  {
+   "nr": 118,
+   "ala": "ala-a",
+   "valgustus": "uld",
+   "liik": "Ev",
+   "suund": 270.0,
+   "silt": "P",
+   "lat": 58.6001347,
+   "lon": 25.001,
+   "e": 558192.35,
+   "n": 6496011.01,
+   "lx": null
+  },
+  {
+   "nr": 201,
+   "ala": "ala-b",
+   "valgustus": "uld",
+   "liik": "Eh",
+   "suund": null,
+   "silt": "",
+   "lat": 58.6000539,
+   "lon": 25.0012586,
+   "e": 558207.51,
+   "n": 6496002.24,
+   "lx": null
+  },
+  {
+   "nr": 202,
+   "ala": "ala-b",
+   "valgustus": "uld",
+   "liik": "Eh",
+   "suund": null,
+   "silt": "",
+   "lat": 58.6000539,
+   "lon": 25.0013449,
+   "e": 558212.53,
+   "n": 6496002.31,
+   "lx": null
+  },
+  {
+   "nr": 203,
+   "ala": "ala-b",
+   "valgustus": "uld",
+   "liik": "Eh",
+   "suund": null,
+   "silt": "",
+   "lat": 58.6000539,
+   "lon": 25.0014311,
+   "e": 558217.54,
+   "n": 6496002.39,
+   "lx": null
+  },
+  {
+   "nr": 204,
+   "ala": "ala-b",
+   "valgustus": "uld",
+   "liik": "Eh",
+   "suund": null,
+   "silt": "",
+   "lat": 58.6000539,
+   "lon": 25.0015173,
+   "e": 558222.55,
+   "n": 6496002.46,
+   "lx": null
+  },
+  {
+   "nr": 205,
+   "ala": "ala-b",
+   "valgustus": "uld",
+   "liik": "Eh",
+   "suund": null,
+   "silt": "",
+   "lat": 58.6000539,
+   "lon": 25.0016035,
+   "e": 558227.56,
+   "n": 6496002.54,
+   "lx": null
+  },
+  {
+   "nr": 206,
+   "ala": "ala-b",
+   "valgustus": "uld",
+   "liik": "Eh",
+   "suund": null,
+   "silt": "",
+   "lat": 58.6000539,
+   "lon": 25.0016897,
+   "e": 558232.57,
+   "n": 6496002.61,
+   "lx": null
+  },
+  {
+   "nr": 301,
+   "ala": "ala-c",
+   "valgustus": "uld",
+   "liik": "Eh",
+   "suund": null,
+   "silt": "",
+   "lat": null,
+   "lon": null,
+   "e": 2.0,
+   "n": 4.0,
+   "lx": null
+  },
+  {
+   "nr": 302,
+   "ala": "ala-c",
+   "valgustus": "uld",
+   "liik": "Eh",
+   "suund": null,
+   "silt": "",
+   "lat": null,
+   "lon": null,
+   "e": 5.0,
+   "n": 4.0,
+   "lx": null
+  },
+  {
+   "nr": 303,
+   "ala": "ala-c",
+   "valgustus": "uld",
+   "liik": "Eh",
+   "suund": null,
+   "silt": "",
+   "lat": null,
+   "lon": null,
+   "e": 8.0,
+   "n": 4.0,
+   "lx": null
+  }
+ ]
+}

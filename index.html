@@ -1,0 +1,995 @@
+<!doctype html>
+<html lang="et">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#000000">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="referrer" content="no-referrer">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data: blob:; connect-src 'none'; form-action 'none'; base-uri 'none'">
+<title>Erko mõõtja</title>
+<style>
+:root {
+  --taust: #000;
+  --pind: #0d0d0d;
+  --pind2: #161616;
+  --joon: #2a2a2a;
+  --tekst: #9a9a9a;
+  --tekst2: #6a6a6a;
+  --hele: #b8b8b8;
+  --roheline: #2f6f3a;
+  --hall: #555;
+  --esile: #8a5a1a;
+  --sinine: #2b4f8a;
+  --punane: #7a2a2a;
+}
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { margin: 0; height: 100%; background: var(--taust); color: var(--tekst);
+  font: 17px/1.35 -apple-system, "Segoe UI", Roboto, sans-serif; overflow: hidden;
+  -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+button, select, input { font: inherit; color: var(--tekst); }
+button { background: var(--pind2); border: 1px solid var(--joon); border-radius: 10px; min-height: 48px;
+  min-width: 48px; padding: 0 14px; }
+button:active { background: #222; }
+button:disabled { opacity: .4; }
+button.pea { background: #14301b; border-color: #24502e; color: var(--hele); }
+button.ohtlik { background: #2a1212; border-color: #4a1e1e; }
+#app { position: fixed; inset: 0; display: flex; flex-direction: column;
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) 0 env(safe-area-inset-left); }
+header { display: flex; gap: 8px; align-items: center; padding: 6px 8px; border-bottom: 1px solid var(--joon); }
+header select { flex: 1; min-width: 0; min-height: 48px; background: var(--pind2); border: 1px solid var(--joon);
+  border-radius: 10px; padding: 0 8px; }
+#loendur { font-variant-numeric: tabular-nums; white-space: nowrap; color: var(--hele); font-size: 19px; }
+main { flex: 1; position: relative; min-height: 0; }
+.vaade { position: absolute; inset: 0; display: none; }
+.vaade.nahtav { display: flex; flex-direction: column; }
+nav { display: flex; gap: 6px; padding: 6px 8px calc(6px + env(safe-area-inset-bottom)); border-top: 1px solid var(--joon); }
+nav button { flex: 1; }
+nav button.aktiivne { border-color: #555; color: var(--hele); }
+/* kaart */
+#kaart { flex: 1; position: relative; min-height: 0; touch-action: none; }
+#louend { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+#minuJuurde { position: absolute; right: 10px; top: 10px; }
+#kaardiTeade { position: absolute; left: 10px; right: 10px; top: 66px; text-align: center; color: var(--tekst2);
+  pointer-events: none; }
+#paneel { padding: 8px 10px; border-top: 1px solid var(--joon); display: flex; flex-direction: column; gap: 6px; }
+#sihtRida { font-size: 22px; color: var(--hele); }
+#gpsRida { color: var(--tekst2); font-size: 15px; }
+.rida { display: flex; gap: 8px; align-items: center; }
+.rida > .lai { flex: 1; }
+.lyliti { display: flex; align-items: center; gap: 10px; min-height: 48px; padding: 0 4px; }
+.lyliti input { width: 26px; height: 26px; accent-color: #3a6a44; }
+/* sisestus */
+#sisestus { padding: 10px; gap: 8px; overflow: auto; }
+#sPealkiri { font-size: 24px; color: var(--hele); }
+#sInfo { color: var(--tekst2); font-size: 15px; min-height: 20px; }
+#sNait { font-size: 64px; text-align: right; padding: 4px 12px; border: 1px solid var(--joon); border-radius: 12px;
+  background: var(--pind); color: var(--hele); font-variant-numeric: tabular-nums; min-height: 92px; }
+#sNait .yhik { font-size: 26px; color: var(--tekst2); margin-left: 8px; }
+#klahvid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+#klahvid button { min-height: 62px; font-size: 28px; }
+#sisestus .nupud { display: flex; flex-direction: column; gap: 8px; }
+#sisestus .nupud button { min-height: 56px; }
+/* nimekiri */
+#nimekiri { gap: 0; }
+#nimekiriPea { padding: 8px; display: flex; gap: 8px; border-bottom: 1px solid var(--joon); }
+#nimekiriPea button { flex: 1; }
+#read { flex: 1; overflow: auto; -webkit-overflow-scrolling: touch; }
+.nrida { display: flex; gap: 10px; align-items: center; min-height: 52px; padding: 4px 12px;
+  border-bottom: 1px solid #141414; }
+.nrida .nr { width: 64px; color: var(--hele); font-variant-numeric: tabular-nums; }
+.nrida .v { flex: 1; font-variant-numeric: tabular-nums; }
+.nrida .aeg { color: var(--tekst2); font-size: 15px; }
+.nrida.moodetud .v { color: #4f8f5a; }
+.nrida.vahele .v { color: #8a6a3a; }
+.nrida .sise { color: var(--tekst2); font-size: 13px; }
+/* fail */
+#fail { padding: 12px; gap: 12px; overflow: auto; }
+#failInfo { color: var(--tekst); white-space: pre-line; }
+.markus { color: var(--tekst2); font-size: 14px; }
+/* teated */
+#banner { display: none; padding: 8px 10px; background: #2a1212; color: #c09090; font-size: 15px; }
+#teade { position: fixed; left: 12px; right: 12px; bottom: calc(90px + env(safe-area-inset-bottom)); display: none;
+  background: #1b1b1b; border: 1px solid #333; border-radius: 10px; padding: 10px 14px; color: var(--hele);
+  z-index: 20; }
+#kinnitus { position: fixed; inset: 0; display: none; background: rgba(0,0,0,.8); z-index: 30;
+  align-items: center; justify-content: center; padding: 20px; }
+#kinnitus .kast { background: #111; border: 1px solid #333; border-radius: 14px; padding: 16px; max-width: 420px;
+  width: 100%; display: flex; flex-direction: column; gap: 12px; }
+#kinnitusTekst { font-size: 19px; color: var(--hele); }
+#kinnitus .rida button { flex: 1; }
+input[type=file] { display: none; }
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="banner"></div>
+  <header>
+    <select id="alaValik" aria-label="Ala"></select>
+    <div id="loendur">– / –</div>
+  </header>
+  <main>
+    <section id="kaardiVaade" class="vaade">
+      <div id="kaart">
+        <canvas id="louend"></canvas>
+        <button id="minuJuurde">Minu juurde</button>
+        <div id="kaardiTeade"></div>
+      </div>
+      <div id="paneel">
+        <div id="sihtRida">Ava mõõtefail (Fail)</div>
+        <div id="gpsRida">GPS: ootan…</div>
+        <div class="rida">
+          <button id="sisestaNupp" class="pea lai" disabled>Sisesta näit</button>
+          <label class="lyliti"><input type="checkbox" id="lahimLyliti">Lähim</label>
+        </div>
+      </div>
+    </section>
+    <section id="sisestus" class="vaade">
+      <div id="sPealkiri">Punkt</div>
+      <div id="sInfo"></div>
+      <div id="sNait"><span id="sNumber"></span><span class="yhik">lx</span></div>
+      <div id="klahvid"></div>
+      <div class="nupud">
+        <button id="salvestaNupp" class="pea">Salvesta ja järgmine</button>
+        <div class="rida">
+          <button id="vaheleNupp" class="lai">Jäta vahele</button>
+          <button id="tagasiNupp" class="lai">Tagasi kaardile</button>
+        </div>
+      </div>
+    </section>
+    <section id="nimekiri" class="vaade">
+      <div id="nimekiriPea">
+        <button id="ekspordiNupp" class="pea">Ekspordi tulemused</button>
+      </div>
+      <div id="read"></div>
+    </section>
+    <section id="fail" class="vaade">
+      <button id="avaNupp" class="pea">Ava mõõtefail</button>
+      <input type="file" id="failiSisend" accept=".json,application/json">
+      <div id="failInfo">Faili pole avatud.</div>
+      <button id="ekspordiNupp2">Ekspordi tulemused</button>
+      <div class="markus">
+        Mõõtefaili teeb Projekteerija: Valgus → Mõõtmine telefonis: ekspordi mõõtefail. Pane see OneDrive'i ja
+        ava siit (Failid → OneDrive). Näidud hoitakse selles telefonis ka siis, kui leht suletakse. Leht ei saada
+        midagi internetti; tulemused lähevad välja ainult nupuga „Ekspordi tulemused“.
+      </div>
+      <div class="markus" id="ekraaniInfo"></div>
+    </section>
+  </main>
+  <nav>
+    <button data-vaade="kaardiVaade">Kaart</button>
+    <button data-vaade="nimekiri">Nimekiri</button>
+    <button data-vaade="fail">Fail</button>
+  </nav>
+</div>
+<div id="teade"></div>
+<div id="kinnitus"><div class="kast">
+  <div id="kinnitusTekst"></div>
+  <div class="rida"><button id="kinnitusJah" class="pea">Jah</button><button id="kinnitusEi">Loobu</button></div>
+</div></div>
+
+<script id="loogika">
+"use strict";
+/* Loogika ilma DOM-ita (testitav Node'iga: testid/telefon/mootja_test.js). */
+var Mootja = (function () {
+  var VORMING = "erko-mootmine-1";
+  var TULEMUS = "erko-mootmine-tulemus-1";
+  var PREFIKS = "erko-mootja|";
+  var R = 6371008.8;
+
+  function onArv(x) { return typeof x === "number" && isFinite(x); }
+
+  function loeFail(tekst) {
+    var d;
+    try { d = JSON.parse(String(tekst).replace(/^\uFEFF/, "")); }
+    catch (e) { return { viga: "Fail ei ole JSON (" + e.message + ")." }; }
+    if (!d || typeof d !== "object") return { viga: "Fail on tühi." };
+    if (d.vorming !== VORMING) {
+      if (d.vorming === TULEMUS) return { viga: "See on tulemuste fail. Ava mõõtefail (…_mootmine_telefon.json)." };
+      return { viga: "Vale vorming: ootan „" + VORMING + "“, failis „" + d.vorming + "“." };
+    }
+    if (!d.projekt || d.projekt.nr === undefined || d.projekt.nr === null || d.projekt.nr === "")
+      return { viga: "Failis pole projekti numbrit." };
+    if (!Array.isArray(d.alad) || !Array.isArray(d.punktid)) return { viga: "Failis pole alasid või punkte." };
+    var alad = [], punktid = [], idd = {};
+    d.alad.forEach(function (a) {
+      if (!a || a.id === undefined || a.id === null) return;
+      var piir = Array.isArray(a.piir) ? a.piir.filter(function (p) {
+        return Array.isArray(p) && onArv(p[0]) && onArv(p[1]);
+      }) : [];
+      var ala = { id: String(a.id), nr: a.nr === undefined || a.nr === null ? "" : String(a.nr),
+        nimi: a.nimi || "", korrus: a.korrus || "", valine: !!a.valine, piir: piir };
+      idd[ala.id] = ala;
+      alad.push(ala);
+    });
+    var nahtud = {};
+    d.punktid.forEach(function (p) {
+      if (!p || !onArv(Number(p.nr))) return;
+      var nr = Number(p.nr);
+      if (nahtud[nr]) return;
+      nahtud[nr] = true;
+      var ala = String(p.ala);
+      if (!idd[ala]) {
+        idd[ala] = { id: ala, nr: "", nimi: "(ala " + ala + ")", korrus: "", valine: false, piir: [] };
+        alad.push(idd[ala]);
+      }
+      var asukoht = onArv(p.lat) && onArv(p.lon);
+      punktid.push({ nr: nr, ala: ala, valgustus: p.valgustus === "hada" ? "hada" : "uld",
+        liik: p.liik === "Ev" ? "Ev" : "Eh", suund: onArv(p.suund) ? p.suund : null, silt: p.silt || "",
+        lat: asukoht ? p.lat : null, lon: asukoht ? p.lon : null,
+        e: onArv(p.e) ? p.e : null, n: onArv(p.n) ? p.n : null, lx: onArv(p.lx) ? p.lx : null });
+    });
+    punktid.sort(function (a, b) { return a.nr - b.nr; });
+    if (!punktid.length) return { viga: "Failis pole ühtegi mõõtepunkti." };
+    return { andmed: { vorming: VORMING, projekt: { nr: String(d.projekt.nr), nimi: d.projekt.nimi || "" },
+      koostatud: String(d.koostatud || ""), alad: alad, punktid: punktid } };
+  }
+
+  function voti(andmed) { return PREFIKS + andmed.projekt.nr + "|" + andmed.koostatud; }
+
+  function uusOlek(andmed) {
+    var ala = null;
+    for (var i = 0; i < andmed.alad.length && !ala; i++) {
+      var id = andmed.alad[i].id;
+      if (andmed.punktid.some(function (p) { return p.ala === id; })) ala = id;
+    }
+    return { andmed: andmed, naidud: {}, vahele: {}, ala: ala, lahim: false };
+  }
+
+  function salvesta(hoidla, olek) {
+    var k = voti(olek.andmed);
+    hoidla.setItem(k, JSON.stringify({ andmed: olek.andmed, naidud: olek.naidud, vahele: olek.vahele,
+      ala: olek.ala, lahim: !!olek.lahim }));
+    hoidla.setItem(PREFIKS + "viimane", k);
+    return k;
+  }
+
+  function loe(hoidla, k) {
+    var t = hoidla.getItem(k);
+    if (!t) return null;
+    try {
+      var o = JSON.parse(t);
+      if (!o || !o.andmed) return null;
+      return { andmed: o.andmed, naidud: o.naidud || {}, vahele: o.vahele || {}, ala: o.ala || null,
+        lahim: !!o.lahim };
+    } catch (e) { return null; }
+  }
+
+  function laeViimane(hoidla) {
+    var k = hoidla.getItem(PREFIKS + "viimane");
+    return k ? loe(hoidla, k) : null;
+  }
+
+  function votmed(hoidla) {
+    var v = [];
+    for (var i = 0; i < hoidla.length; i++) {
+      var k = hoidla.key(i);
+      if (k && k.indexOf(PREFIKS) === 0 && k !== PREFIKS + "viimane") v.push(k);
+    }
+    return v;
+  }
+
+  /* Uus fail: sama fail -> olek alles; sama projekti teine fail -> näidud punktinumbri järgi üle. */
+  function avaAndmed(hoidla, andmed) {
+    var k = voti(andmed);
+    var olemas = loe(hoidla, k);
+    if (olemas) {
+      olemas.andmed = andmed;
+      return { olek: olemas, ule: 0, sama: true };
+    }
+    var olek = uusOlek(andmed);
+    var eesliide = PREFIKS + andmed.projekt.nr + "|";
+    var vanad = votmed(hoidla).filter(function (x) { return x.indexOf(eesliide) === 0; });
+    var ule = 0;
+    vanad.sort();
+    vanad.forEach(function (x) {
+      var vana = loe(hoidla, x);
+      if (!vana) return;
+      Object.keys(vana.naidud).forEach(function (nr) {
+        var a = olek.naidud[nr], b = vana.naidud[nr];
+        if (!a || String(b.aeg) > String(a.aeg)) { if (!a) ule++; olek.naidud[nr] = b; }
+      });
+    });
+    if (olek.ala && vanad.length) {
+      var viimane = loe(hoidla, vanad[vanad.length - 1]);
+      if (viimane && andmed.alad.some(function (a) { return a.id === viimane.ala; })) olek.ala = viimane.ala;
+    }
+    return { olek: olek, ule: ule, sama: false };
+  }
+
+  function punkt(olek, nr) {
+    nr = Number(nr);
+    for (var i = 0; i < olek.andmed.punktid.length; i++) if (olek.andmed.punktid[i].nr === nr) return olek.andmed.punktid[i];
+    return null;
+  }
+
+  function nait(olek, p) {
+    var n = olek.naidud[String(p.nr)];
+    if (n) return { lx: n.lx, aeg: n.aeg, allikas: "telefon" };
+    if (p.lx !== null && p.lx !== undefined) return { lx: p.lx, aeg: null, allikas: "fail" };
+    return null;
+  }
+
+  function alaPunktid(olek, ala) {
+    return olek.andmed.punktid.filter(function (p) { return ala === null || ala === "*" || p.ala === ala; });
+  }
+
+  function loendur(olek, ala) {
+    var pp = alaPunktid(olek, ala);
+    return { moodetud: pp.filter(function (p) { return nait(olek, p); }).length, kokku: pp.length };
+  }
+
+  function kaugusSuund(lat1, lon1, lat2, lon2) {
+    var f1 = lat1 * Math.PI / 180, f2 = lat2 * Math.PI / 180;
+    var df = f2 - f1, dl = (lon2 - lon1) * Math.PI / 180;
+    var a = Math.sin(df / 2) * Math.sin(df / 2) + Math.cos(f1) * Math.cos(f2) * Math.sin(dl / 2) * Math.sin(dl / 2);
+    var kaugus = 2 * R * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    var y = Math.sin(dl) * Math.cos(f2);
+    var x = Math.cos(f1) * Math.sin(f2) - Math.sin(f1) * Math.cos(f2) * Math.cos(dl);
+    var suund = (Math.atan2(y, x) * 180 / Math.PI + 360) % 360;
+    return { kaugus: kaugus, suund: suund };
+  }
+
+  var SUUNAD = ["põhjas", "kirdes", "idas", "kagus", "lõunas", "edelas", "läänes", "loodes"];
+  function suunaNimi(kraadi) { return SUUNAD[Math.round(((kraadi % 360) + 360) % 360 / 45) % 8]; }
+
+  function kauguseTekst(m) {
+    if (m < 10) return (Math.round(m * 10) / 10).toString().replace(".", ",") + " m";
+    if (m < 1000) return Math.round(m) + " m";
+    return (Math.round(m / 100) / 10).toString().replace(".", ",") + " km";
+  }
+
+  /* Järgmine punkt: valitud ala väikseima numbriga mõõtmata punkt (vahele jäetud alles siis, kui muid pole);
+     lahim=true ja asukoht teada -> lähim asukohaga mõõtmata punkt. valja = punkt, mida mitte valida. */
+  function jargmine(olek, ala, asukoht, lahim, valja) {
+    var vabad = alaPunktid(olek, ala).filter(function (p) { return !nait(olek, p) && p.nr !== valja; });
+    if (!vabad.length) return null;
+    var vahele = olek.vahele || {};
+    var pohi = vabad.filter(function (p) { return !vahele[String(p.nr)]; });
+    if (!pohi.length) {
+      pohi = vabad.slice().sort(function (a, b) { return vahele[String(a.nr)] - vahele[String(b.nr)] || a.nr - b.nr; });
+      return pohi[0];
+    }
+    if (lahim && asukoht) {
+      var parim = null, pk = Infinity;
+      pohi.forEach(function (p) {
+        if (p.lat === null) return;
+        var k = kaugusSuund(asukoht.lat, asukoht.lon, p.lat, p.lon).kaugus;
+        if (k < pk) { pk = k; parim = p; }
+      });
+      if (parim) return parim;
+    }
+    return pohi[0];
+  }
+
+  function loeArv(tekst) {
+    var t = String(tekst).trim().replace(",", ".");
+    if (!/^\d+(\.\d*)?$|^\.\d+$/.test(t)) return null;
+    var v = parseFloat(t);
+    return isFinite(v) ? v : null;
+  }
+
+  function arvTekst(v) { return String(Math.round(v * 100) / 100).replace(".", ","); }
+
+  function kaks(n) { return (n < 10 ? "0" : "") + n; }
+
+  function isoKohalik(d) {
+    var nihe = -d.getTimezoneOffset();
+    var m = nihe >= 0 ? "+" : "-";
+    nihe = Math.abs(nihe);
+    return d.getFullYear() + "-" + kaks(d.getMonth() + 1) + "-" + kaks(d.getDate()) + "T" + kaks(d.getHours()) + ":" +
+      kaks(d.getMinutes()) + ":" + kaks(d.getSeconds()) + m + kaks(Math.floor(nihe / 60)) + ":" + kaks(nihe % 60);
+  }
+
+  function kell(iso) { var m = /T(\d\d:\d\d)/.exec(iso || ""); return m ? m[1] : ""; }
+
+  function salvestaNait(olek, nr, lx, aeg, asukoht) {
+    var kirje = { lx: lx, aeg: aeg };
+    if (asukoht) {
+      kirje.lat = Math.round(asukoht.lat * 1e7) / 1e7;
+      kirje.lon = Math.round(asukoht.lon * 1e7) / 1e7;
+      kirje.tapsus_m = Math.round(asukoht.tapsus * 10) / 10;
+    }
+    olek.naidud[String(nr)] = kirje;
+    if (olek.vahele) delete olek.vahele[String(nr)];
+    return kirje;
+  }
+
+  function jataVahele(olek, nr) {
+    olek.vahele = olek.vahele || {};
+    var max = 0;
+    Object.keys(olek.vahele).forEach(function (k) { max = Math.max(max, olek.vahele[k]); });
+    olek.vahele[String(nr)] = max + 1;
+  }
+
+  function tulemused(olek) {
+    var tul = Object.keys(olek.naidud).map(function (nr) {
+      var n = olek.naidud[nr];
+      var r = { nr: Number(nr), lx: n.lx, aeg: n.aeg };
+      if (onArv(n.lat) && onArv(n.lon)) { r.lat = n.lat; r.lon = n.lon; }
+      if (onArv(n.tapsus_m)) r.tapsus_m = n.tapsus_m;
+      return r;
+    });
+    tul.sort(function (a, b) { return a.nr - b.nr; });
+    return { vorming: TULEMUS, projekt: olek.andmed.projekt.nr, allikas_koostatud: olek.andmed.koostatud,
+      tulemused: tul };
+  }
+
+  function csv(tul) {
+    var read = ["nr;lx;aeg"];
+    tul.tulemused.forEach(function (t) { read.push(t.nr + ";" + arvTekst(t.lx) + ";" + t.aeg); });
+    return read.join("\r\n") + "\r\n";
+  }
+
+  function failiNimi(olek, d, laiend) {
+    var nr = String(olek.andmed.projekt.nr).replace(/[^0-9A-Za-z_\-]/g, "_");
+    return nr + "_mootmine_tulemused_" + d.getFullYear() + "-" + kaks(d.getMonth() + 1) + "-" + kaks(d.getDate()) +
+      "-" + kaks(d.getHours()) + kaks(d.getMinutes()) + "." + laiend;
+  }
+
+  return { VORMING: VORMING, TULEMUS: TULEMUS, PREFIKS: PREFIKS, loeFail: loeFail, voti: voti, uusOlek: uusOlek,
+    salvesta: salvesta, loe: loe, laeViimane: laeViimane, avaAndmed: avaAndmed, punkt: punkt, nait: nait,
+    alaPunktid: alaPunktid, loendur: loendur, kaugusSuund: kaugusSuund, suunaNimi: suunaNimi,
+    kauguseTekst: kauguseTekst, jargmine: jargmine, loeArv: loeArv, arvTekst: arvTekst, isoKohalik: isoKohalik,
+    kell: kell, salvestaNait: salvestaNait, jataVahele: jataVahele, tulemused: tulemused, csv: csv,
+    failiNimi: failiNimi };
+})();
+if (typeof module !== "undefined") module.exports = Mootja;
+</script>
+
+<script id="liides">
+"use strict";
+(function () {
+  var M = Mootja;
+  var $ = function (id) { return document.getElementById(id); };
+  var hoidla = null;
+  try { hoidla = window.localStorage; hoidla.setItem("erko-mootja-proov", "1"); hoidla.removeItem("erko-mootja-proov"); }
+  catch (e) { hoidla = null; }
+
+  var olek = null;          // Mootja olek
+  var asukoht = null;       // {lat, lon, tapsus}
+  var gpsTeade = "GPS: ootan asukohta…";
+  var valitud = null;       // käsitsi valitud punkti nr (kaardil)
+  var sisestusNr = null;    // sisestusvaate punkt
+  var sisestusTekst = "";
+  var vaade = "fail";
+  var eelmineVaade = "kaardiVaade";
+
+  /* ---------- teated ---------- */
+  var teateAeg = null;
+  function teade(t, ms) {
+    var el = $("teade");
+    el.textContent = t; el.style.display = "block";
+    clearTimeout(teateAeg);
+    teateAeg = setTimeout(function () { el.style.display = "none"; }, ms || 3000);
+  }
+  function banner(t) { var b = $("banner"); b.textContent = t || ""; b.style.display = t ? "block" : "none"; }
+  var kinnitusJah = null;
+  function kysi(tekst, jahTekst, jah) {
+    $("kinnitusTekst").textContent = tekst;
+    $("kinnitusJah").textContent = jahTekst || "Jah";
+    kinnitusJah = jah;
+    $("kinnitus").style.display = "flex";
+  }
+  $("kinnitusJah").onclick = function () { $("kinnitus").style.display = "none"; var f = kinnitusJah; kinnitusJah = null; if (f) f(); };
+  $("kinnitusEi").onclick = function () { $("kinnitus").style.display = "none"; kinnitusJah = null; };
+
+  function salvestaOlek() {
+    if (!olek) return true;
+    if (!hoidla) { banner("Selles brauseris ei saa näite salvestada (privaatne režiim?). Ära sulge lehte enne eksporti."); return false; }
+    try { M.salvesta(hoidla, olek); return true; }
+    catch (e) { banner("Salvestamine ebaõnnestus (" + e.name + "). Ekspordi tulemused kohe."); return false; }
+  }
+
+  /* ---------- vaated ---------- */
+  function naita(v) {
+    if (v !== "sisestus") eelmineVaade = v;
+    vaade = v;
+    ["kaardiVaade", "sisestus", "nimekiri", "fail"].forEach(function (id) {
+      $(id).classList.toggle("nahtav", id === v);
+    });
+    Array.prototype.forEach.call(document.querySelectorAll("nav button"), function (b) {
+      b.classList.toggle("aktiivne", b.getAttribute("data-vaade") === v);
+    });
+    if (v === "kaardiVaade") { suurus(); if (vajaSobitada) teeSobitus(); joonista(); }
+    if (v === "nimekiri") taidaNimekiri();
+    if (v === "fail") taidaFail();
+  }
+  Array.prototype.forEach.call(document.querySelectorAll("nav button"), function (b) {
+    b.onclick = function () { naita(b.getAttribute("data-vaade")); };
+  });
+
+  /* ---------- ala valik ja loendur ---------- */
+  function alaNimi(a) { return (a.nr ? a.nr + " " : "") + a.nimi + (a.korrus && !a.valine ? " (" + a.korrus + ")" : ""); }
+  function taidaAlad() {
+    var s = $("alaValik");
+    s.innerHTML = "";
+    if (!olek) { var o0 = document.createElement("option"); o0.textContent = "Faili pole"; s.appendChild(o0); return; }
+    olek.andmed.alad.forEach(function (a) {
+      if (!M.alaPunktid(olek, a.id).length) return;
+      var o = document.createElement("option");
+      o.value = a.id; o.textContent = alaNimi(a);
+      s.appendChild(o);
+    });
+    var k = document.createElement("option");
+    k.value = "*"; k.textContent = "Kõik alad";
+    s.appendChild(k);
+    s.value = olek.ala || "*";
+  }
+  $("alaValik").onchange = function () {
+    if (!olek) return;
+    olek.ala = this.value; valitud = null;
+    salvestaOlek(); sobita(); uuenda();
+  };
+  function uuenda() {
+    if (!olek) { $("loendur").textContent = "– / –"; return; }
+    var l = M.loendur(olek, olek.ala);
+    $("loendur").textContent = l.moodetud + " / " + l.kokku;
+    uuendaPaneel();
+    if (vaade === "kaardiVaade") joonista();
+    if (vaade === "nimekiri") taidaNimekiri();
+  }
+
+  /* ---------- siht (järgmine või valitud) ---------- */
+  function siht() {
+    if (!olek) return null;
+    if (valitud !== null) { var p = M.punkt(olek, valitud); if (p) return p; }
+    return M.jargmine(olek, olek.ala, asukoht, olek.lahim);
+  }
+  function uuendaPaneel() {
+    var p = siht(), nupp = $("sisestaNupp"), rida = $("sihtRida");
+    if (!olek) { rida.textContent = "Ava mõõtefail (Fail)"; nupp.disabled = true; nupp.textContent = "Sisesta näit"; }
+    else if (!p) { rida.textContent = "Kõik selle ala punktid on mõõdetud"; nupp.disabled = true; nupp.textContent = "Sisesta näit"; }
+    else {
+      var t = "Punkt " + p.nr;
+      var n = M.nait(olek, p);
+      if (n) t += " · " + M.arvTekst(n.lx) + " lx";
+      if (p.lat === null) t += " · sees (asukohta pole)";
+      else if (asukoht) {
+        var ks = M.kaugusSuund(asukoht.lat, asukoht.lon, p.lat, p.lon);
+        t += " · " + M.kauguseTekst(ks.kaugus) + (ks.kaugus >= 0.5 ? " " + M.suunaNimi(ks.suund) : "");
+      }
+      rida.textContent = t;
+      nupp.disabled = false;
+      nupp.textContent = (n ? "Muuda näitu (" : "Sisesta näit (") + p.nr + ")";
+    }
+    $("gpsRida").textContent = gpsTeade;
+  }
+  $("sisestaNupp").onclick = function () { var p = siht(); if (p) avaSisestus(p.nr); };
+  $("lahimLyliti").onchange = function () {
+    if (!olek) return;
+    olek.lahim = this.checked; valitud = null; salvestaOlek(); uuenda();
+  };
+
+  /* ---------- asukoht ---------- */
+  function uusAsukoht(lat, lon, tapsus) {
+    asukoht = { lat: lat, lon: lon, tapsus: tapsus };
+    gpsTeade = "GPS täpsus ±" + Math.max(1, Math.round(tapsus)) + " m";
+    if (vaade === "kaardiVaade") { uuendaPaneel(); joonista(); }
+  }
+  function alustaGps() {
+    var q = /[?&]asukoht=([-0-9.]+),([-0-9.]+)(?:,([0-9.]+))?/.exec(location.search);
+    if (q) { uusAsukoht(parseFloat(q[1]), parseFloat(q[2]), q[3] ? parseFloat(q[3]) : 3); gpsTeade += " (proovi-asukoht)"; return; }
+    if (!window.isSecureContext && location.protocol !== "file:") { gpsTeade = "GPS ei tööta: leht pole https-aadressil."; return; }
+    if (!navigator.geolocation) { gpsTeade = "GPS ei tööta: brauser ei toeta asukohta. Vali punkt kaardilt või nimekirjast."; return; }
+    navigator.geolocation.watchPosition(function (pos) {
+      uusAsukoht(pos.coords.latitude, pos.coords.longitude, pos.coords.accuracy || 0);
+    }, function (err) {
+      asukoht = null;
+      if (err.code === 1) gpsTeade = "Asukoha luba puudub: Seaded → Privaatsus → Asukohateenused → Safari veebisaidid → Küsi / Kasutamise ajal. Leht töötab ka ilma.";
+      else if (err.code === 2) gpsTeade = "GPS: asukohta ei leita (mine lagedale). Leht töötab ka ilma.";
+      else gpsTeade = "GPS: ootan asukohta (aeg läks üle)…";
+      uuendaPaneel(); joonista();
+    }, { enableHighAccuracy: true, maximumAge: 0, timeout: 20000 });
+  }
+
+  /* ---------- kaart ---------- */
+  var louend = $("louend"), ctx = louend.getContext("2d");
+  var vaatus = { lat0: 0, lon0: 0, kx: 1, ky: 1, mpx: 0.2, cx: 0, cy: 0 }; // meetrit pikslis, keskpunkt meetrites
+  var dpr = window.devicePixelRatio || 1, laius = 1, korgus = 1;
+  function suurus() {
+    var r = $("kaart").getBoundingClientRect();
+    laius = Math.max(1, r.width); korgus = Math.max(1, r.height);
+    dpr = window.devicePixelRatio || 1;
+    louend.width = Math.round(laius * dpr); louend.height = Math.round(korgus * dpr);
+  }
+  window.addEventListener("resize", function () { if (vaade === "kaardiVaade") { suurus(); joonista(); } });
+  function meetrid(lat, lon) { return { x: (lon - vaatus.lon0) * vaatus.kx, y: (lat - vaatus.lat0) * vaatus.ky }; }
+  function ekraan(lat, lon) {
+    var m = meetrid(lat, lon);
+    return { x: laius / 2 + (m.x - vaatus.cx) / vaatus.mpx, y: korgus / 2 - (m.y - vaatus.cy) / vaatus.mpx };
+  }
+  function seaAlgus(lat, lon) {
+    vaatus.lat0 = lat; vaatus.lon0 = lon;
+    vaatus.ky = Math.PI / 180 * 6371008.8;
+    vaatus.kx = vaatus.ky * Math.cos(lat * Math.PI / 180);
+  }
+  var vajaSobitada = false;
+  /* Kaart peidus -> mõõdud 0: sobitus tehakse siis, kui kaart on nähtav. */
+  function sobita() {
+    vajaSobitada = true;
+    if (vaade === "kaardiVaade") teeSobitus();
+  }
+  function teeSobitus() {
+    if (!olek) return;
+    suurus();
+    if (laius < 20 || korgus < 20) return;
+    vajaSobitada = false;
+    var lat = [], lon = [];
+    var ala = olek.andmed.alad.filter(function (a) { return a.id === olek.ala; })[0];
+    if (ala) ala.piir.forEach(function (p) { lat.push(p[0]); lon.push(p[1]); });
+    M.alaPunktid(olek, olek.ala).forEach(function (p) { if (p.lat !== null) { lat.push(p.lat); lon.push(p.lon); } });
+    if (!lat.length) {
+      olek.andmed.punktid.forEach(function (p) { if (p.lat !== null) { lat.push(p.lat); lon.push(p.lon); } });
+    }
+    if (!lat.length) return;
+    var la0 = Math.min.apply(null, lat), la1 = Math.max.apply(null, lat);
+    var lo0 = Math.min.apply(null, lon), lo1 = Math.max.apply(null, lon);
+    seaAlgus((la0 + la1) / 2, (lo0 + lo1) / 2);
+    var a = meetrid(la0, lo0), b = meetrid(la1, lo1);
+    vaatus.cx = (a.x + b.x) / 2; vaatus.cy = (a.y + b.y) / 2;
+    suurus();
+    var w = Math.max(10, b.x - a.x), h = Math.max(10, b.y - a.y);
+    vaatus.mpx = Math.max(w / (laius - 40), h / (korgus - 40), 0.02);
+  }
+  function minuJuurde() {
+    if (!asukoht) { teade(gpsTeade); return; }
+    if (!vaatus.ky || vaatus.ky === 1) seaAlgus(asukoht.lat, asukoht.lon);
+    var m = meetrid(asukoht.lat, asukoht.lon);
+    vaatus.cx = m.x; vaatus.cy = m.y;
+    if (vaatus.mpx > 0.3) vaatus.mpx = 0.15;
+    joonista();
+  }
+  $("minuJuurde").onclick = minuJuurde;
+
+  function joonista() {
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.fillStyle = "#000"; ctx.fillRect(0, 0, laius, korgus);
+    var teadeEl = $("kaardiTeade");
+    if (!olek) { teadeEl.textContent = "Ava mõõtefail: all „Fail“."; return; }
+    var alaPP = M.alaPunktid(olek, olek.ala);
+    var asukohaga = alaPP.filter(function (p) { return p.lat !== null; });
+    teadeEl.textContent = alaPP.length && !asukohaga.length ? "Selle ala punktidel pole kaardiasukohta. Vali punkt nimekirjast." : "";
+    // alade piirid
+    olek.andmed.alad.forEach(function (a) {
+      if (a.piir.length < 2) return;
+      var oma = a.id === olek.ala;
+      ctx.beginPath();
+      a.piir.forEach(function (p, i) { var s = ekraan(p[0], p[1]); if (i) ctx.lineTo(s.x, s.y); else ctx.moveTo(s.x, s.y); });
+      ctx.closePath();
+      ctx.lineWidth = oma ? 2 : 1;
+      ctx.strokeStyle = oma ? "#5a5a5a" : "#262626";
+      ctx.stroke();
+    });
+    var s = siht();
+    var mpx = vaatus.mpx, numbrid = mpx < 0.35;
+    var r = Math.max(4, Math.min(9, 1.2 / mpx));
+    // teised punktid peenelt, valitud ala tugevamalt
+    olek.andmed.punktid.forEach(function (p) {
+      if (p.lat === null) return;
+      var oma = olek.ala === "*" || p.ala === olek.ala;
+      var e = ekraan(p.lat, p.lon);
+      if (e.x < -30 || e.y < -30 || e.x > laius + 30 || e.y > korgus + 30) return;
+      var n = M.nait(olek, p);
+      ctx.globalAlpha = oma ? 1 : 0.35;
+      if (p.liik === "Ev" && p.suund !== null) {
+        var nurk = p.suund * Math.PI / 180, pk = r * 2.6;
+        var x2 = e.x + Math.sin(nurk) * pk, y2 = e.y - Math.cos(nurk) * pk;
+        ctx.strokeStyle = "#6a6a6a"; ctx.lineWidth = 1.5;
+        ctx.beginPath(); ctx.moveTo(e.x, e.y); ctx.lineTo(x2, y2); ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(x2, y2);
+        ctx.lineTo(x2 - Math.sin(nurk - 0.5) * r, y2 + Math.cos(nurk - 0.5) * r);
+        ctx.lineTo(x2 - Math.sin(nurk + 0.5) * r, y2 + Math.cos(nurk + 0.5) * r);
+        ctx.closePath(); ctx.fillStyle = "#6a6a6a"; ctx.fill();
+        if (p.silt) {
+          ctx.fillStyle = "#8a8a8a"; ctx.font = "bold 13px sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+          ctx.fillText(p.silt, e.x + Math.sin(nurk) * (pk + 10), e.y - Math.cos(nurk) * (pk + 10));
+        }
+      }
+      ctx.beginPath(); ctx.arc(e.x, e.y, r, 0, Math.PI * 2);
+      ctx.fillStyle = n ? "#2f6f3a" : "#505050";
+      ctx.fill();
+      if (p.valgustus === "hada") { ctx.strokeStyle = "#7a3a3a"; ctx.lineWidth = 2; ctx.stroke(); }
+      if (oma && (numbrid || (s && s.nr === p.nr))) {
+        ctx.fillStyle = "#8a8a8a"; ctx.font = "12px sans-serif"; ctx.textAlign = "left"; ctx.textBaseline = "bottom";
+        ctx.fillText(String(p.nr), e.x + r + 2, e.y - r + 2);
+      }
+      ctx.globalAlpha = 1;
+    });
+    // siht esile + joon minu juurest
+    if (s && s.lat !== null) {
+      var e2 = ekraan(s.lat, s.lon);
+      if (asukoht) {
+        var a2 = ekraan(asukoht.lat, asukoht.lon);
+        ctx.setLineDash([6, 6]); ctx.strokeStyle = "#5a4520"; ctx.lineWidth = 1.5;
+        ctx.beginPath(); ctx.moveTo(a2.x, a2.y); ctx.lineTo(e2.x, e2.y); ctx.stroke(); ctx.setLineDash([]);
+      }
+      ctx.beginPath(); ctx.arc(e2.x, e2.y, r + 7, 0, Math.PI * 2);
+      ctx.strokeStyle = "#a06a20"; ctx.lineWidth = 3; ctx.stroke();
+      ctx.fillStyle = "#a07a40"; ctx.font = "bold 15px sans-serif"; ctx.textAlign = "left"; ctx.textBaseline = "bottom";
+      ctx.fillText(String(s.nr), e2.x + r + 8, e2.y - r - 4);
+    }
+    // minu asukoht
+    if (asukoht) {
+      var m = ekraan(asukoht.lat, asukoht.lon);
+      var rr = asukoht.tapsus / mpx;
+      if (rr > 6) {
+        ctx.beginPath(); ctx.arc(m.x, m.y, rr, 0, Math.PI * 2);
+        ctx.fillStyle = "rgba(43,79,138,0.15)"; ctx.fill();
+        ctx.strokeStyle = "rgba(43,79,138,0.5)"; ctx.lineWidth = 1; ctx.stroke();
+      }
+      ctx.beginPath(); ctx.arc(m.x, m.y, 6, 0, Math.PI * 2);
+      ctx.fillStyle = "#3a62a8"; ctx.fill(); ctx.strokeStyle = "#111"; ctx.lineWidth = 2; ctx.stroke();
+    }
+    // mõõtkava
+    var riba = [1, 2, 5, 10, 20, 50, 100, 200, 500, 1000].filter(function (v) { return v / mpx >= 50; })[0] || 1000;
+    var px = riba / mpx;
+    ctx.strokeStyle = "#555"; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(12, korgus - 14); ctx.lineTo(12 + px, korgus - 14); ctx.stroke();
+    ctx.fillStyle = "#666"; ctx.font = "12px sans-serif"; ctx.textAlign = "left"; ctx.textBaseline = "bottom";
+    ctx.fillText(riba + " m", 12, korgus - 18);
+    ctx.fillText("N ↑", laius - 36, korgus - 10);
+  }
+
+  // nihutamine ja suum (näpud, hiir)
+  var viited = {}, liigutus = null, liikus = false;
+  function kaksPunkti() {
+    var k = Object.keys(viited);
+    if (k.length < 2) return null;
+    var a = viited[k[0]], b = viited[k[1]];
+    return { d: Math.hypot(a.x - b.x, a.y - b.y), x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+  }
+  function suumi(tegur, sx, sy) {
+    var mx = vaatus.cx + (sx - laius / 2) * vaatus.mpx, my = vaatus.cy - (sy - korgus / 2) * vaatus.mpx;
+    vaatus.mpx = Math.min(50, Math.max(0.01, vaatus.mpx / tegur));
+    vaatus.cx = mx - (sx - laius / 2) * vaatus.mpx; vaatus.cy = my + (sy - korgus / 2) * vaatus.mpx;
+  }
+  function kohalik(ev) { var r = louend.getBoundingClientRect(); return { x: ev.clientX - r.left, y: ev.clientY - r.top }; }
+  louend.addEventListener("pointerdown", function (ev) {
+    louend.setPointerCapture(ev.pointerId);
+    viited[ev.pointerId] = kohalik(ev);
+    var kp = kaksPunkti();
+    liigutus = kp ? { kaks: kp } : { x: viited[ev.pointerId].x, y: viited[ev.pointerId].y, algus: viited[ev.pointerId] };
+    if (!kp) liikus = false; else liikus = true;
+  });
+  louend.addEventListener("pointermove", function (ev) {
+    if (!viited[ev.pointerId] || !liigutus) return;
+    viited[ev.pointerId] = kohalik(ev);
+    var kp = kaksPunkti();
+    if (kp && liigutus.kaks) {
+      suumi(kp.d / Math.max(1, liigutus.kaks.d), kp.x, kp.y);
+      vaatus.cx -= (kp.x - liigutus.kaks.x) * vaatus.mpx; vaatus.cy += (kp.y - liigutus.kaks.y) * vaatus.mpx;
+      liigutus.kaks = kp; joonista();
+    } else if (!kp && liigutus.x !== undefined) {
+      var p = viited[ev.pointerId];
+      if (Math.hypot(p.x - liigutus.algus.x, p.y - liigutus.algus.y) > 8) liikus = true;
+      if (liikus) {
+        vaatus.cx -= (p.x - liigutus.x) * vaatus.mpx; vaatus.cy += (p.y - liigutus.y) * vaatus.mpx;
+        liigutus.x = p.x; liigutus.y = p.y; joonista();
+      }
+    }
+  });
+  function lahti(ev) {
+    var oli = viited[ev.pointerId];
+    delete viited[ev.pointerId];
+    var k = Object.keys(viited);
+    if (!k.length && oli && !liikus && ev.type === "pointerup") koputus(oli.x, oli.y);
+    liigutus = k.length ? { x: viited[k[0]].x, y: viited[k[0]].y, algus: viited[k[0]] } : null;
+    if (k.length) liikus = true;
+  }
+  louend.addEventListener("pointerup", lahti);
+  louend.addEventListener("pointercancel", lahti);
+  louend.addEventListener("wheel", function (ev) {
+    ev.preventDefault();
+    var p = kohalik(ev);
+    suumi(ev.deltaY < 0 ? 1.25 : 0.8, p.x, p.y); joonista();
+  }, { passive: false });
+  document.addEventListener("gesturestart", function (e) { e.preventDefault(); });
+
+  function koputus(x, y) {
+    if (!olek) return;
+    var parim = null, pk = 28;
+    olek.andmed.punktid.forEach(function (p) {
+      if (p.lat === null) return;
+      var e = ekraan(p.lat, p.lon), k = Math.hypot(e.x - x, e.y - y);
+      if (k < pk) { pk = k; parim = p; }
+    });
+    if (parim) {
+      valitud = parim.nr;
+      if (olek.ala !== "*" && parim.ala !== olek.ala) { olek.ala = parim.ala; $("alaValik").value = olek.ala; salvestaOlek(); }
+    } else valitud = null;
+    uuenda();
+  }
+
+  /* ---------- sisestus ---------- */
+  var KLAHVID = ["1", "2", "3", "4", "5", "6", "7", "8", "9", ",", "0", "⌫"];
+  KLAHVID.forEach(function (k) {
+    var b = document.createElement("button");
+    b.textContent = k;
+    b.onclick = function () { klahv(k); };
+    $("klahvid").appendChild(b);
+  });
+  function klahv(k) {
+    if (k === "⌫") sisestusTekst = sisestusTekst.slice(0, -1);
+    else if (k === ",") { if (sisestusTekst.indexOf(",") < 0) sisestusTekst = (sisestusTekst || "0") + ","; }
+    else if (sisestusTekst.length < 8) sisestusTekst = sisestusTekst === "0" ? k : sisestusTekst + k;
+    naitaSisestus();
+  }
+  function jargmineParast(nr) { return M.jargmine(olek, olek.ala, asukoht, olek.lahim, nr); }
+  function avaSisestus(nr) {
+    var p = M.punkt(olek, nr);
+    if (!p) return;
+    sisestusNr = p.nr; sisestusTekst = "";
+    var ala = olek.andmed.alad.filter(function (a) { return a.id === p.ala; })[0];
+    $("sPealkiri").textContent = "Punkt " + p.nr + (p.valgustus === "hada" ? " · hädavalgustus" : "");
+    var info = [];
+    if (ala) info.push(alaNimi(ala));
+    info.push(p.liik === "Ev" ? "Ev (vertikaalne)" + (p.silt ? " suund " + p.silt : "") : "Eh (horisontaalne)");
+    var n = M.nait(olek, p);
+    if (n) info.push("praegu " + M.arvTekst(n.lx) + " lx" + (n.aeg ? " (" + M.kell(n.aeg) + ")" : " (Projekteerijast)"));
+    $("sInfo").textContent = info.join(" · ");
+    naitaSisestus();
+    naita("sisestus");
+  }
+  function naitaSisestus() {
+    $("sNumber").textContent = sisestusTekst || "–";
+    var v = M.loeArv(sisestusTekst);
+    var j = jargmineParast(sisestusNr);
+    var nupp = $("salvestaNupp");
+    nupp.disabled = v === null;
+    nupp.textContent = j ? "Salvesta ja järgmine (" + j.nr + ")" : "Salvesta";
+  }
+  function salvestaSisestus() {
+    var v = M.loeArv(sisestusTekst);
+    if (v === null) return;
+    var p = M.punkt(olek, sisestusNr);
+    var n = M.nait(olek, p);
+    var tee = function () {
+      M.salvestaNait(olek, p.nr, v, M.isoKohalik(new Date()), asukoht);
+      var ok = salvestaOlek();
+      valitud = null;
+      teade("Punkt " + p.nr + ": " + M.arvTekst(v) + " lx salvestatud" + (ok ? "" : " (AINULT MÄLUS!)"), 2000);
+      jargmineVoiKaart(p.nr);
+    };
+    if (n && n.lx !== v) kysi("Punktil " + p.nr + " on juba näit " + M.arvTekst(n.lx) + " lx. Kirjutan üle: " + M.arvTekst(v) + " lx?", "Kirjuta üle", tee);
+    else tee();
+  }
+  function jargmineVoiKaart(nr) {
+    var j = jargmineParast(nr);
+    if (j && eelmineVaade === "kaardiVaade") { uuenda(); naita("kaardiVaade"); }
+    else { uuenda(); naita(eelmineVaade); }
+  }
+  $("salvestaNupp").onclick = salvestaSisestus;
+  $("vaheleNupp").onclick = function () {
+    if (sisestusNr === null) return;
+    if (!M.nait(olek, M.punkt(olek, sisestusNr))) M.jataVahele(olek, sisestusNr);
+    salvestaOlek(); valitud = null; uuenda(); naita(eelmineVaade);
+  };
+  $("tagasiNupp").onclick = function () { naita("kaardiVaade"); };
+
+  /* ---------- nimekiri ---------- */
+  function taidaNimekiri() {
+    var el = $("read");
+    el.innerHTML = "";
+    if (!olek) { el.textContent = "Faili pole avatud."; return; }
+    var frag = document.createDocumentFragment();
+    M.alaPunktid(olek, olek.ala).forEach(function (p) {
+      var n = M.nait(olek, p);
+      var rida = document.createElement("div");
+      var vahel = !n && olek.vahele && olek.vahele[String(p.nr)];
+      rida.className = "nrida" + (n ? " moodetud" : "") + (vahel ? " vahele" : "");
+      var a = document.createElement("span"); a.className = "nr"; a.textContent = p.nr; rida.appendChild(a);
+      var b = document.createElement("span"); b.className = "v";
+      b.textContent = n ? M.arvTekst(n.lx) + " lx" : (vahel ? "vahele jäetud" : "mõõtmata");
+      if (p.liik === "Ev") b.textContent += "  · Ev" + (p.silt ? " " + p.silt : "");
+      if (p.valgustus === "hada") b.textContent += "  · häda";
+      rida.appendChild(b);
+      if (p.lat === null) { var s = document.createElement("span"); s.className = "sise"; s.textContent = "sees"; rida.appendChild(s); }
+      var c = document.createElement("span"); c.className = "aeg";
+      c.textContent = n ? (n.aeg ? M.kell(n.aeg) : "Projekteerija") : "";
+      rida.appendChild(c);
+      rida.onclick = function () { avaSisestus(p.nr); };
+      frag.appendChild(rida);
+    });
+    el.appendChild(frag);
+  }
+
+  /* ---------- fail ---------- */
+  $("avaNupp").onclick = function () { $("failiSisend").value = ""; $("failiSisend").click(); };
+  $("failiSisend").onchange = function () {
+    var f = this.files && this.files[0];
+    if (!f) return;
+    var lugeja = new FileReader();
+    lugeja.onload = function () { avaTekst(String(lugeja.result), f.name); };
+    lugeja.onerror = function () { teade("Faili ei saanud lugeda."); };
+    lugeja.readAsText(f, "utf-8");
+  };
+  function avaTekst(tekst, nimi) {
+    var r = M.loeFail(tekst);
+    if (r.viga) { teade(r.viga, 6000); return; }
+    var tulemus;
+    if (hoidla) { try { tulemus = M.avaAndmed(hoidla, r.andmed); } catch (e) { tulemus = null; } }
+    if (!tulemus) tulemus = { olek: M.uusOlek(r.andmed), ule: 0, sama: false };
+    olek = tulemus.olek;
+    valitud = null;
+    salvestaOlek();
+    $("lahimLyliti").checked = !!olek.lahim;
+    taidaAlad(); sobita(); uuenda();
+    var l = M.loendur(olek, "*");
+    teade((nimi ? nimi + ": " : "") + olek.andmed.punktid.length + " punkti" +
+      (tulemus.sama ? ", näidud alles (" + l.moodetud + ")" : tulemus.ule ? ", " + tulemus.ule + " näitu eelmisest failist" : ""), 4000);
+    naita("kaardiVaade");
+  }
+  function taidaFail() {
+    if (!olek) { $("failInfo").textContent = "Faili pole avatud."; return; }
+    var l = M.loendur(olek, "*");
+    var telefonis = Object.keys(olek.naidud).length;
+    $("failInfo").textContent = "Projekt " + olek.andmed.projekt.nr + " " + olek.andmed.projekt.nimi +
+      "\nFail koostatud " + olek.andmed.koostatud.replace("T", " ").slice(0, 16) +
+      "\nPunkte " + olek.andmed.punktid.length + ", mõõdetud " + l.moodetud + " (telefonis sisestatud " + telefonis + ")";
+  }
+
+  /* ---------- eksport ---------- */
+  function ekspordi() {
+    if (!olek) { teade("Ava enne mõõtefail."); return; }
+    var tul = M.tulemused(olek);
+    if (!tul.tulemused.length) { teade("Telefonis pole veel ühtegi näitu."); return; }
+    var d = new Date();
+    var nJ = M.failiNimi(olek, d, "json"), nC = M.failiNimi(olek, d, "csv");
+    var tJ = JSON.stringify(tul, null, 1), tC = M.csv(tul);
+    var failid = null;
+    try {
+      failid = [new File([tJ], nJ, { type: "application/json" }), new File([tC], nC, { type: "text/csv" })];
+    } catch (e) { failid = null; }
+    if (failid && navigator.canShare && navigator.canShare({ files: failid })) {
+      navigator.share({ files: failid, title: nJ }).then(function () {
+        teade("Eksporditud " + tul.tulemused.length + " näitu.");
+      }).catch(function (e) {
+        if (e && e.name === "AbortError") return;
+        laeAlla(nJ, tJ, "application/json"); laeAlla(nC, tC, "text/csv");
+      });
+    } else {
+      laeAlla(nJ, tJ, "application/json");
+      setTimeout(function () { laeAlla(nC, tC, "text/csv"); }, 400);
+      teade("Laaditud alla: " + nJ + " ja .csv", 5000);
+    }
+  }
+  function laeAlla(nimi, tekst, tyyp) {
+    var url = URL.createObjectURL(new Blob([tekst], { type: tyyp }));
+    var a = document.createElement("a");
+    a.href = url; a.download = nimi; document.body.appendChild(a); a.click();
+    setTimeout(function () { URL.revokeObjectURL(url); a.remove(); }, 2000);
+  }
+  $("ekspordiNupp").onclick = ekspordi;
+  $("ekspordiNupp2").onclick = ekspordi;
+
+  /* ---------- ekraan ei lukustu ---------- */
+  var lukk = null;
+  function hoiaEkraan() {
+    if (!("wakeLock" in navigator)) { $("ekraaniInfo").textContent = "Ekraani ärkvel hoidmist see brauser ei toeta: pane Seaded → Ekraan → Automaatlukk pikemaks."; return; }
+    if (lukk || document.visibilityState !== "visible") return;
+    navigator.wakeLock.request("screen").then(function (l) {
+      lukk = l; $("ekraaniInfo").textContent = "Ekraan hoitakse ärkvel.";
+      l.addEventListener("release", function () { lukk = null; });
+    }).catch(function () { $("ekraaniInfo").textContent = "Ekraani ärkvel hoidmine ei õnnestunud (puuduta lehte)."; });
+  }
+  document.addEventListener("visibilitychange", function () { if (document.visibilityState === "visible") hoiaEkraan(); });
+  document.addEventListener("pointerdown", hoiaEkraan, true);
+
+  /* ---------- algus ---------- */
+  if (!hoidla) banner("Selles brauseris ei saa näite salvestada (privaatne režiim?). Ära sulge lehte enne eksporti.");
+  if (hoidla) {
+    try { olek = M.laeViimane(hoidla); } catch (e) { olek = null; }
+  }
+  taidaAlad();
+  if (olek) { $("lahimLyliti").checked = !!olek.lahim; vajaSobitada = true; naita("kaardiVaade"); uuenda(); }
+  else naita("fail");
+  alustaGps();
+  hoiaEkraan();
+  window.erkoMootja = { avaTekst: avaTekst, olek: function () { return olek; } };
+})();
+</script>
+</body>
+</html>
